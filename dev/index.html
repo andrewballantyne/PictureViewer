@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Picture Viewer</title>
+  <script type="text/javascript" src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
+  <script type="text/javascript" src="src/Helpers.js"></script>
+  <script type="text/javascript" src="src/PictureViewer.js"></script>
+  <script type="text/javascript" src="src/ImageWrapper.js"></script>
+  <style>
+    body {
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      box-shadow: 1px 1px 5px #ddd;
+    }
+  </style>
+  </head>
+<body>
+
+<canvas id="canvasId" width="800" height="600"></canvas>
+
+<script>
+  var stage = new createjs.Stage('canvasId');
+
+  var padding = 50;
+  var imageData = [
+    'images/a.jpg',
+    'images/b.jpg',
+    'images/c.png',
+    'images/d.png',
+    'images/e.jpg',
+    'images/f.jpg'
+  ];
+  var width = stage.canvas.width - padding * 2;
+  var height = stage.canvas.height - padding * 2;
+
+  var pictureViewer = new PictureViewer(imageData, width, height);
+  pictureViewer.x = pictureViewer.y = padding;
+  stage.addChild(pictureViewer);
+
+  var title = new createjs.Text('PictureViewer Example - Skydive', '24px Arial', '#666');
+  title.textAlign = 'center';
+  title.textBaseline = 'middle';
+  title.x = stage.canvas.width / 2;
+  title.y = padding / 2;
+  stage.addChild(title);
+
+  createjs.Ticker.on('tick', function () {
+    stage.update();
+  });
+</script>
+
+</body>
+</html>
