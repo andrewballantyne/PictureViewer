@@ -2,120 +2,63 @@
  * Created by Andrew on 3/23/16.
  */
 class PictureViewer extends createjs.Container {
+  /**
+   * @param {string[]} images - The list of image datas
+   * @param {number} width - The width of the image layer
+   * @param {number} height - The height of the image layer
+   */
   constructor(images, width, height) {
     super();
 
     this._width = width;
     this._height = height;
-    this._imageData = images;
 
-    this._CLICK_ZONE_WIDTH = 50;
-    this._viewIndex = 0;
-    this._images = [];
-    this._bg = null;
-    this._loading = null;
-    this._imgContainer = null;
-    this._navPanels = null;
-    this._clickDisabled = true;
-    this._loadCount = 0;
+    // Layers
+    this._bgLayer = null;
+    this._imageLayer = new ImageLayer(images, this._width, this._height);
+    this._navLayer = null;
 
-    this._setupData();
-    this._setupInterface();
+    this._setup();
+    this._setupListeners();
   }
 
+  /**
+   * Move to the next picture slide. If at the max, nothing happens.
+   */
   nextSlide() {
-    this._hideCurrentSlide();
-    this._viewIndex = Math.min(++this._viewIndex, this._images.length - 1);
-    this._showCurrentSlide();
+    this._imageLayer.forward();
   }
 
+  /**
+   * Move the last picture slide. If at the min, nothing happens.
+   */
   prevSlide() {
-    this._hideCurrentSlide();
-    this._viewIndex = Math.max(--this._viewIndex, 0);
-    this._showCurrentSlide();
+    this._imageLayer.back();
   }
 
-  _hideCurrentSlide() {
-    this._images[this._viewIndex].visible = false;
+  _setup() {
+    this._bgLayer = new BackgroundLayer(this._width, this._height);
+    this.addChild(this._bgLayer);
+
+    this._imageLayer.on(ImageLayer.EVT_FULLY_LOADED, this._imagesLoaded.bind(this));
+    this._imageLayer.load();
+    this.addChild(this._imageLayer);
+
+    this._navLayer = new NavLayer(this._width, this._height);
+    this._navLayer.on(NavLayer.EVT_NAV_BACK, this.prevSlide.bind(this));
+    this._navLayer.on(NavLayer.EVT_NAV_NEXT, this.nextSlide.bind(this));
+    this.addChild(this._navLayer);
   }
 
-  _showCurrentSlide() {
-    this._images[this._viewIndex].visible = true;
+  _imagesLoaded() {
+    this._bgLayer.hide();
+    this._navLayer.show();
   }
 
-  _setupData() {
-    this._bg = new createjs.Shape();
-    this._bg.graphics.beginFill('#ccc').drawRect(0, 0, this._width, this._height);
-    this.addChild(this._bg);
-
-    this._loading = new createjs.Text('Loading...', '42px Arial', '#444');
-    this._loading.textAlign = 'center';
-    this._loading.textBaseline = 'middle';
-    this._loading.x = this._width / 2;
-    this._loading.y = this._height / 2;
-    this.addChild(this._loading);
-
-    this._imgContainer = new createjs.Container();
-    this.addChild(this._imgContainer);
-
-    this._navPanels = new createjs.Shape();
-    this._navPanels.visible = false;
-    this._navPanels.graphics
-      .beginFill('rgba(142,142,142,.2)')
-      .drawRect(0, 0, this._CLICK_ZONE_WIDTH, this._height)
-      .drawRect(this._width - this._CLICK_ZONE_WIDTH, 0, this._CLICK_ZONE_WIDTH, this._height)
-    ;
-    this.addChild(this._navPanels);
-
-    // Parse the images
-    Helpers.delayer(() => {
-      let index = 0;
-      this._imageData.forEach((imageData) => {
-        const img = new Image();
-        img.index = index++;
-        img.onload = (e) => {
-          console.log(`Loaded ${img.index} image.`, imageData);
-
-          this._imgTag = new ImageWrapper(img);
-          this._imgTag.setSize(this._width, this._height);
-          this._imgTag.visible = false;
-          this._images[img.index] = this._imgTag;
-          this._imgContainer.addChild(this._imgTag);
-
-          this._loaded();
-        };
-        img.onerror = (e) => {
-          console.error("Failed to load image.", e);
-        };
-        img.src = imageData;
-      });
-    });
-  }
-
-  _loaded() {
-    this._loadCount++;
-    if (this._loadCount === this._imageData.length) {
-      this._loading.visible = false;
-      this._bg.visible = false;
-      this._clickDisabled = false;
-      this._navPanels.visible = true;
-      this._images[this._viewIndex].visible = true;
-    }
-  }
-
-  _setupInterface() {
+  _setupListeners() {
     this.on('click', (e) => {
-      if (this._clickDisabled) return;
-      const point = Helpers.eventToLocalPoint(e, this);
-      if (point.x < this._CLICK_ZONE_WIDTH) {
-        // Left click
-        this.prevSlide();
-        console.log("<<");
-      } else if (point.x > this._width - this._CLICK_ZONE_WIDTH) {
-        // Right click
-        this.nextSlide();
-        console.log(">>");
-      }
+      const stagePoint = Helpers.eventToLocalPoint(e, this);
+      this._navLayer.handleClick(stagePoint);
     });
   }
 }
