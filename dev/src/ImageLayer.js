@@ -54,10 +54,11 @@ class ImageLayer extends AbstractLayer {
     Helpers.delayer(() => {
       let index = 0;
       this._imageData.forEach((imageData) => {
+        const start = Date.now();
         const img = new Image();
         img.index = index++;
         img.onload = (e) => {
-          console.log(`Loaded ${img.index} image.`, imageData);
+          console.log(`Loaded ${img.index} image after ${Date.now() - start}ms.`, imageData);
 
           const imgTag = new ImageWrapper(img);
           imgTag.setSize(this._width, this._height);
