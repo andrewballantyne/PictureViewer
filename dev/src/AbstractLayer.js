@@ -19,4 +19,11 @@ class AbstractLayer extends createjs.Container {
   hide() {
     this.visible = false;
   }
+  
+  dispatchEvent(event, data) {
+    const eventObj = new Event(event);
+    eventObj.data = data;
+
+    super.dispatchEvent(eventObj);
+  }
 }

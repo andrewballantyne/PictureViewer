@@ -18,6 +18,7 @@ class ImageLayer extends AbstractLayer {
     this._viewIndex = 0;
     this._loadCount = 0;
     this._loading = null;
+    this._isChanging = false;
 
     this._setup();
   }
@@ -26,18 +27,20 @@ class ImageLayer extends AbstractLayer {
    * Moves the image layer forward one image.
    */
   forward() {
-    this._hideCurrentSlide();
+    if (this._isChanging) return;
+    const currentIndex = this._viewIndex;
     this._viewIndex = Math.min(++this._viewIndex, this._images.length - 1);
-    this._showCurrentSlide();
+    this._transition(currentIndex, this._viewIndex);
   }
 
   /**
    * Moves the image layer back one image.
    */
   back() {
-    this._hideCurrentSlide();
+    if (this._isChanging) return;
+    const currentIndex = this._viewIndex;
     this._viewIndex = Math.max(--this._viewIndex, 0);
-    this._showCurrentSlide();
+    this._transition(currentIndex, this._viewIndex);
   }
 
   /**
@@ -86,15 +89,32 @@ class ImageLayer extends AbstractLayer {
     });
   }
 
-  _hideCurrentSlide() {
-    this._images[this._viewIndex].visible = false;
-  }
+  _transition(slideOutIndex, slideInIndex) {
+    if (slideOutIndex === slideInIndex) return; // no change needed, same slide
+    this._lock();
 
-  _showCurrentSlide() {
-    this._images[this._viewIndex].visible = true;
+    const LEFT_POS = { x: -this._width };
+    const CENTER_POS = { x: 0 };
+    const RIGHT_POS = { x: this._width };
+    const DURATION = 500;
+
+    const goingLeft = slideInIndex > slideOutIndex;
+    const outTo = (goingLeft) ? LEFT_POS : RIGHT_POS;
+
+    const slideLeaving = this._images[slideOutIndex];
+    slideLeaving.x = CENTER_POS.x; // make sure it's in the visible position
+    createjs.Tween.get(slideLeaving).to(outTo, DURATION, createjs.Ease.circInOut);
+
+    const slideEntering = this._images[slideInIndex];
+    slideEntering.x = goingLeft ? RIGHT_POS.x : LEFT_POS.x;
+    slideEntering.visible = true;
+    createjs.Tween.get(slideEntering)
+      .to(CENTER_POS, DURATION, createjs.Ease.circInOut)
+      .call(() => { this._unlock(); });
   }
 
   _setup() {
+    // Setup the loading indicator
     this._loading = new createjs.Text('Loading...', '42px Arial', '#444');
     this._loading.textAlign = 'center';
     this._loading.textBaseline = 'middle';
@@ -102,6 +122,21 @@ class ImageLayer extends AbstractLayer {
     this._loading.y = this._height / 2;
     this._loading.visible = false;
     this.addChild(this._loading);
+
+    // Force the bounds to the width and height we were given so no image can draw outside of it
+    this.mask = new createjs.Shape();
+    this.mask.graphics.drawRect(0,0, this._width, this._height);
+  }
+
+  _lock() {
+    this._isChanging = true;
+    this.dispatchEvent(ImageLayer.EVT_TRANSITION_STATE_CHANGE, true);
+  }
+
+  _unlock() {
+    this._isChanging = false;
+    this.dispatchEvent(ImageLayer.EVT_TRANSITION_STATE_CHANGE, false);
   }
 }
 ImageLayer.EVT_FULLY_LOADED = "EVT_FULLY_LOADED";
+ImageLayer.EVT_TRANSITION_STATE_CHANGE = "EVT_TRANSITION_STATE_CHANGE";
