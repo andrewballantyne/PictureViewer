@@ -41,6 +41,7 @@ class PictureViewer extends createjs.Container {
     this.addChild(this._bgLayer);
 
     this._imageLayer.on(ImageLayer.EVT_FULLY_LOADED, this._imagesLoaded.bind(this));
+    this._imageLayer.on(ImageLayer.EVT_TRANSITION_STATE_CHANGE, this._transitionChange.bind(this));
     this._imageLayer.load();
     this.addChild(this._imageLayer);
 
@@ -53,6 +54,12 @@ class PictureViewer extends createjs.Container {
   _imagesLoaded() {
     this._bgLayer.hide();
     this._navLayer.show();
+  }
+
+  _transitionChange(e) {
+    const transitionData = e.data;
+    this._navLayer.setLeftNavAvailable(!transitionData.atMin);
+    this._navLayer.setRightNavAvailable(!transitionData.atMax);
   }
 
   _setupListeners() {

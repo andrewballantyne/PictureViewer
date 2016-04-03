@@ -130,13 +130,30 @@ class ImageLayer extends AbstractLayer {
 
   _lock() {
     this._isChanging = true;
-    this.dispatchEvent(ImageLayer.EVT_TRANSITION_STATE_CHANGE, true);
+    this._notifyTransition();
   }
 
   _unlock() {
     this._isChanging = false;
-    this.dispatchEvent(ImageLayer.EVT_TRANSITION_STATE_CHANGE, false);
+    this._notifyTransition();
+  }
+
+  _notifyTransition() {
+    const data = {
+      isTransitioning: this._isChanging,
+      atMin: this._viewIndex === 0,
+      atMax: this._viewIndex === this._images.length - 1
+    };
+    this.dispatchEvent(ImageLayer.EVT_TRANSITION_STATE_CHANGE, data);
   }
 }
 ImageLayer.EVT_FULLY_LOADED = "EVT_FULLY_LOADED";
+/**
+ *
+ * @data {
+ *   {boolean} isTransitioning - True if the image layer is currently transitioning
+ *   {boolean} atMin - Is at the min image (index === 0)
+ *   {boolean} atMax - Is at the max image (index === allImages.length)
+ * }
+ */
 ImageLayer.EVT_TRANSITION_STATE_CHANGE = "EVT_TRANSITION_STATE_CHANGE";
